@@ -15,7 +15,7 @@ define('SBWP_PLUGIN_NAME', 'Simple Bullhorn WP');
  
  
 /*
-*  Register a menu page
+*  Method to register the menu page
 */
 function sbwp_register_menu_page() 
 {
@@ -29,14 +29,28 @@ function sbwp_register_menu_page()
             81
     );
 }
-add_action( 'admin_menu', 'sbwp_register_menu_page' );
+
+/*
+*   Register admin plugin settings
+*/
+if ( is_admin() )
+{
+    add_action( 'admin_menu', 'sbwp_register_menu_page' );
+    add_action( 'admin_init', 'sbwp_register_api_credential_settings' );
+}
+
+function sbwp_register_api_credential_settings()
+{
+    register_setting( 'sbwp-api-credentials', 'sbwp_bullhorn_client_id' );
+    register_setting( 'sbwp-api-credentials', 'sbwp_bullhorn_client_secret' );
+}
  
 /*
 * Show the menu page in admin
 */
 function show_sbwp_options_admin_menu() 
 {
-    if ( !current_user_can( 'manage_options' ) )  { // reject a user without the correct permissions
+    if ( !current_user_can( 'manage_options' ) || !is_admin() )  { // reject a user without the correct permissions
         wp_die( __( 'Insufficient permissions' ) );
     }
     
