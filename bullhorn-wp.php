@@ -43,6 +43,8 @@ function sbwp_register_api_credential_settings()
 {
     register_setting( 'sbwp-api-credentials', 'sbwp_bullhorn_client_id' );
     register_setting( 'sbwp-api-credentials', 'sbwp_bullhorn_client_secret' );
+    register_setting( 'sbwp-api-credentials', 'sbwp_bullhorn_username' );
+    register_setting( 'sbwp-api-credentials', 'sbwp_bullhorn_password' );
 }
  
 /*

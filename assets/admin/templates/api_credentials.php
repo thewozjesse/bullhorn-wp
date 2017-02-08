@@ -18,6 +18,16 @@
             <th scope="row">Bullhorn Client Secret</th>
             <td><input type="text" name="sbwp_bullhorn_client_secret" value="<?php echo esc_attr( get_option('sbwp_bullhorn_client_secret') ); ?>" /></td>
             </tr>
+            
+            <tr valign="top">
+            <th scope="row">Bullhorn Username</th>
+            <td><input type="text" name="sbwp_bullhorn_username" value="<?php echo esc_attr( get_option('sbwp_bullhorn_username') ); ?>" /></td>
+            </tr>
+             
+            <tr valign="top">
+            <th scope="row">Bullhorn Password</th>
+            <td><input type="password" name="sbwp_bullhorn_password" value="<?php echo esc_attr( get_option('sbwp_bullhorn_password') ); ?>" /></td>
+            </tr>
         </table>
         
         <?php submit_button(); ?>
