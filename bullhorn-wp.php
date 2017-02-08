@@ -8,13 +8,19 @@
  * Author URI: http://thewozjesse.com
  */
  
- /*
-  *  Register a menu page
-  */
+/*
+* Register constants
+*/ 
+define('SBWP_PLUGIN_NAME', 'Simple Bullhorn WP');
+ 
+ 
+/*
+*  Register a menu page
+*/
 function sbwp_register_menu_page() 
 {
     add_menu_page(
-        __( 'Simple Bullhorn WP', 'textdomain' ),
+        __( SBWP_PLUGIN_NAME, 'textdomain' ),
             'Bullhorn WP',
             'manage_options',
             'sbwp/sbwp-admin.php',
@@ -26,14 +32,15 @@ function sbwp_register_menu_page()
 add_action( 'admin_menu', 'sbwp_register_menu_page' );
  
 /*
- * Show the menu page in admin
- */
+* Show the menu page in admin
+*/
 function show_sbwp_options_admin_menu() 
 {
     if ( !current_user_can( 'manage_options' ) )  { // reject a user without the correct permissions
         wp_die( __( 'Insufficient permissions' ) );
     }
-    echo 'Simple Bullhorn WP'; // placeholder
+    
+    require_once('assets/admin/templates/api_credentials.php');
 }
  
  ?>
