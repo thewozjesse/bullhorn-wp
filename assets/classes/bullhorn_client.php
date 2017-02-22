@@ -25,6 +25,28 @@ class BullhornClient {
 	public function __construct($get = NULL)
 	{
 		$this->set_sorts($get);
+		try {
+			$this->_setBullhornCredentials();
+		} catch (Exception $e) {
+			echo $e->getMessage();
+		}
+	}
+
+	private function _setBullhornCredentials()
+	{
+		$this->client_id = get_option( 'sbwp_bullhorn_client_id', false );
+	    $this->client_secret = get_option( 'sbwp_bullhorn_client_secret', false );
+	    $this->bh_user = get_option( 'sbwp_bullhorn_username', false );
+	    $this->bh_password = get_option( 'sbwp_bullhorn_password', false );
+
+		if (isset($this->client_id) && strlen($this->client_id) > 0 &&
+			isset($this->client_secret) && strlen($this->client_secret) > 0 &&
+			isset($this->bh_user) && strlen($this->bh_user) > 0 &&
+			isset($this->bh_password) && strlen($this->bh_password) > 0) {
+			return true;
+		} else {
+			throw new Exception('Cannot set Bullhorn API credentials.');
+		}
 	}
 
 	public function connect()
@@ -32,12 +54,12 @@ class BullhornClient {
 		//check connection and refresh if made, get authorization if not
 		if ($this->checkConnection())
 		{
-			$refresh = $this->getRefreshTokens();	
+			$refresh = $this->getRefreshTokens();
 		}
 		else
 		{
 			$auth_code = $this->getAuthCode();
-			$oauth = $this->getOauthTokens();			
+			$oauth = $this->getOauthTokens();
 		}
 
 		$login = $this->doLogin();
@@ -53,11 +75,11 @@ class BullhornClient {
 			CURLOPT_POST           => true,
 			CURLOPT_POSTFIELDS     => $data,
 			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_HEADER         => true,   
+			CURLOPT_HEADER         => true,
 			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_AUTOREFERER    => true,   
+			CURLOPT_AUTOREFERER    => true,
 			CURLOPT_CONNECTTIMEOUT => 120,
-			CURLOPT_TIMEOUT        => 120,     
+			CURLOPT_TIMEOUT        => 120,
 		);
 
 		$ch  = curl_init( $auth_url );
@@ -87,9 +109,9 @@ class BullhornClient {
 			CURLOPT_POSTFIELDS     => $data,
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_AUTOREFERER    => true,   
+			CURLOPT_AUTOREFERER    => true,
 			CURLOPT_CONNECTTIMEOUT => 120,
-			CURLOPT_TIMEOUT        => 120,     
+			CURLOPT_TIMEOUT        => 120,
 		);
 
 		$ch  = curl_init( $auth_url );
@@ -113,9 +135,9 @@ class BullhornClient {
 			CURLOPT_POSTFIELDS     => $data,
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_AUTOREFERER    => true,   
+			CURLOPT_AUTOREFERER    => true,
 			CURLOPT_CONNECTTIMEOUT => 120,
-			CURLOPT_TIMEOUT        => 120,     
+			CURLOPT_TIMEOUT        => 120,
 		);
 
 		$ch  = curl_init( $auth_url );
@@ -136,9 +158,9 @@ class BullhornClient {
 		$options = array(
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_AUTOREFERER    => true,   
+			CURLOPT_AUTOREFERER    => true,
 			CURLOPT_CONNECTTIMEOUT => 120,
-			CURLOPT_TIMEOUT        => 120,     
+			CURLOPT_TIMEOUT        => 120,
 		);
 
 		$ch  = curl_init( $login_url );
@@ -176,7 +198,7 @@ class BullhornClient {
 	{
 		if (isset($get['limit']))
 		{
-			$this->limit = filter_input(INPUT_GET, 'limit', FILTER_SANITIZE_STRING);			
+			$this->limit = filter_input(INPUT_GET, 'limit', FILTER_SANITIZE_STRING);
 		}
 		else
 		{
@@ -213,7 +235,7 @@ class BullhornClient {
 
 			$where = urlencode($job_title . $division . $city . $state);
 		}
-		else 
+		else
 		{
 			$where = '';
 		}
@@ -223,9 +245,9 @@ class BullhornClient {
 		$options = array(
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_AUTOREFERER    => true,   
+			CURLOPT_AUTOREFERER    => true,
 			CURLOPT_CONNECTTIMEOUT => 120,
-			CURLOPT_TIMEOUT        => 120,     
+			CURLOPT_TIMEOUT        => 120,
 		);
 
 		$ch  = curl_init( $url );
@@ -248,9 +270,9 @@ class BullhornClient {
 		$options = array(
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_AUTOREFERER    => true,   
+			CURLOPT_AUTOREFERER    => true,
 			CURLOPT_CONNECTTIMEOUT => 120,
-			CURLOPT_TIMEOUT        => 120,     
+			CURLOPT_TIMEOUT        => 120,
 		);
 
 		$ch  = curl_init( $url );
