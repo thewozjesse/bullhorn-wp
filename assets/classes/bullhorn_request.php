@@ -25,7 +25,7 @@ class BullhornRequest {
         );
         
         if ($header) {
-            $options['CURLOPT_HEADER'] = true;
+            $options[CURLOPT_HEADER] = true;
         }
 
         $ch  = curl_init( $url );
