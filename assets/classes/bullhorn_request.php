@@ -4,15 +4,19 @@ class BullhornRequest {
     
     /**
      * Use cURL to send a POST request
-     * @param  string  $url    the URL to POST to
-     * @param  array  $data   the data to send
-     * @param  boolean $header include headers?
-     * @return string          data returned from the cURL request
+     * @param  string        $url    the URL to POST to
+     * @param  string/array  $data   the data to send
+     * @param  boolean       $header include headers?
+     * @return string                data returned from the cURL request
      */
     public function post($url, $data, $header = false)
     {
         // format data for curl
-        $formatted_data = implode('&', array_map(array($this, '_concatenateKeyValuePairs'), array_keys($data), array_values($data)));
+        if (is_array($data)) {
+            $formatted_data = implode('&', array_map(array($this, '_concatenateKeyValuePairs'), array_keys($data), array_values($data)));
+        } else {
+            $formatted_data = '';
+        }
         
         $options = array(
             CURLOPT_POST           => true,
@@ -29,6 +33,25 @@ class BullhornRequest {
         }
 
         $ch  = curl_init( $url );
+        curl_setopt_array( $ch, $options );
+        $content = curl_exec( $ch );
+
+        curl_close( $ch );
+        
+        return $content;
+    }
+    
+    public function get($login_url)
+    {
+        $options = array(
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_AUTOREFERER    => true,
+            CURLOPT_CONNECTTIMEOUT => 120,
+            CURLOPT_TIMEOUT        => 120,
+        );
+
+        $ch  = curl_init( $login_url );
         curl_setopt_array( $ch, $options );
         $content = curl_exec( $ch );
 

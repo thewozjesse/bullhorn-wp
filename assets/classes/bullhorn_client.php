@@ -1,7 +1,13 @@
 <?php
 
+// require bullhorn request class
+require_once 'bullhorn_request.php';
+
 class BullhornClient {
 
+	private $bullhorn_auth_url = 'https://auth.bullhornstaffing.com';
+	private $bullhorn_rest_url = 'https://rest.bullhornstaffing.com';
+	
 	// connection credentials
 	private $client_id;
 	private $client_secret;
@@ -12,6 +18,8 @@ class BullhornClient {
 	private $oauth_token;
 	private $oauth_refresh;
 
+	private $bullhorn_request;
+	
 	private $BhRestToken;
 	private $restUrl;
 
@@ -25,11 +33,19 @@ class BullhornClient {
 	public function __construct($get = NULL)
 	{
 		$this->set_sorts($get);
+		
+		// set credentials
 		try {
 			$this->_setBullhornCredentials();
 		} catch (Exception $e) {
 			echo $e->getMessage();
 		}
+		
+		// set request class
+		$this->bullhorn_request = new BullhornRequest();
+
+		// connect to bullhorn
+		$this->_connect();
 	}
 
 	private function _setBullhornCredentials()
@@ -49,78 +65,66 @@ class BullhornClient {
 		}
 	}
 
-	public function connect()
+	private function _connect()
 	{
 		//check connection and refresh if made, get authorization if not
-		if ($this->checkConnection())
+		if ($this->_hasConnection())
 		{
 			$refresh = $this->getRefreshTokens();
 		}
 		else
 		{
-			$auth_code = $this->getAuthCode();
-			$oauth = $this->getOauthTokens();
+			$this->_getAuthCode();
+			$this->_getOauthTokens();
 		}
 
-		$login = $this->doLogin();
-		$store = $this->storeTokensToSession();
+		$this->doLogin();
+		// $this->storeTokensToSession();
+	}
+	
+	private function _hasConnection()
+	{
+		$refresh_token = get_option( 'sbwp_bullhorn_refresh_token', false );
+		
+		if ($refresh_token && strlen($refresh_token) > 0)
+		{
+			$this->oauth_refresh = $refresh_token;
+			
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 
-	private function getAuthCode()
+	private function _getAuthCode()
 	{
-		$auth_url = 'https://auth.bullhornstaffing.com/oauth/authorize?client_id='.$this->client_id.'&response_type=code';
-		$data = "action=Login&username=".$this->bh_user."&password=".$this->bh_password;
+		$auth_url = $this->bullhorn_auth_url.'/oauth/authorize?client_id='.$this->client_id.'&response_type=code';
 
-		$options = array(
-			CURLOPT_POST           => true,
-			CURLOPT_POSTFIELDS     => $data,
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_HEADER         => true,
-			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_AUTOREFERER    => true,
-			CURLOPT_CONNECTTIMEOUT => 120,
-			CURLOPT_TIMEOUT        => 120,
+		$data = array(
+			'action' => 'Login',
+			'username' => $this->bh_user,
+			'password' => $this->bh_password
 		);
 
-		$ch  = curl_init( $auth_url );
-		curl_setopt_array( $ch, $options );
-		$content = curl_exec( $ch );
+		$content = $this->bullhorn_request->post($auth_url, $data, true);
 
-		curl_close( $ch );
-
+		// get the authcode from bullhorn response
 		if(preg_match('#Location: (.*)#', $content, $r)) {
-			$l = trim($r[1]);
-			$temp = preg_split("/code=/", $l);
-			$authcode_string = $temp[1];
-			$auth_code_array = preg_split("/&/", $authcode_string);
-			$authcode = $auth_code_array[0];
+			$temp = preg_split("/code=/", trim($r[1]));
+			$authcode_array = preg_split("/&/", $temp[1]);
 
-			$this->auth_code = $authcode;
+			$this->auth_code = $authcode_array[0];
 		}
 	}
 
-	private function getOauthTokens()
+	private function _getOauthTokens()
 	{
-		$auth_url = 'https://auth.bullhornstaffing.com/oauth/token?grant_type=authorization_code&code='.$this->auth_code.'&client_id='.$this->client_id.'&client_secret='.$this->client_secret;
+		$auth_url = $this->bullhorn_auth_url.'/oauth/token?grant_type=authorization_code&code='.$this->auth_code.'&client_id='.$this->client_id.'&client_secret='.$this->client_secret;
 		$data = '';
 
-		$options = array(
-			CURLOPT_POST           => true,
-			CURLOPT_POSTFIELDS     => $data,
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_AUTOREFERER    => true,
-			CURLOPT_CONNECTTIMEOUT => 120,
-			CURLOPT_TIMEOUT        => 120,
-		);
-
-		$ch  = curl_init( $auth_url );
-		curl_setopt_array( $ch, $options );
-		$content = curl_exec( $ch );
-
-		curl_close( $ch );
-		
-		$json = json_decode($content);
+		$json = json_decode($this->bullhorn_request->post($auth_url, $data));
 
 		$this->oauth_token = $json->access_token;
 		$this->oauth_refresh = $json->refresh_token;
@@ -128,7 +132,7 @@ class BullhornClient {
 
 	private function getRefreshTokens()
 	{
-		$auth_url = 'https://auth.bullhornstaffing.com/oauth/token?grant_type=refresh_token&refresh_token='.$_SESSION['refreshToken'].'&client_id='.$this->client_id.'&client_secret='.$this->client_secret;
+		$auth_url = $this->bullhorn_auth_url.'/oauth/token?grant_type=refresh_token&refresh_token='.$_SESSION['refreshToken'].'&client_id='.$this->client_id.'&client_secret='.$this->client_secret;
 
 		$options = array(
 			CURLOPT_POST           => true,
@@ -154,25 +158,20 @@ class BullhornClient {
 
 	private function doLogin()
 	{
-		$login_url = 'https://rest.bullhornstaffing.com/rest-services/login?version=*&access_token='.$this->oauth_token;
-		$options = array(
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_AUTOREFERER    => true,
-			CURLOPT_CONNECTTIMEOUT => 120,
-			CURLOPT_TIMEOUT        => 120,
-		);
+		try {
+			if (!isset($this->oauth_token)) {
+				throw new Exception('Oauth token is not set.');
+			}
+			
+			$login_url = $this->bullhorn_rest_url.'/rest-services/login?version=*&access_token='.$this->oauth_token;
+			
+			$json = json_decode($this->bullhorn_request->get($login_url));
 
-		$ch  = curl_init( $login_url );
-		curl_setopt_array( $ch, $options );
-		$content = curl_exec( $ch );
-
-		curl_close( $ch );
-
-		$json = json_decode($content);
-
-		$this->BhRestToken = $json->BhRestToken;
-		$this->restUrl = $json->restUrl;
+			$this->BhRestToken = $json->BhRestToken;
+			$this->restUrl = $json->restUrl;
+		} catch (Exception $e) {
+			echo $e->getMessage();
+		}
 	}
 
 	private function storeTokensToSession()
@@ -180,18 +179,6 @@ class BullhornClient {
 		$_SESSION['BhRestToken'] = $this->BhRestToken;
 		$_SESSION['restUrl'] = $this->restUrl;
 		$_SESSION['refreshToken'] = $this->oauth_refresh;
-	}
-
-	private function checkConnection()
-	{
-		if (!empty($_SESSION['refreshToken']) && strlen($_SESSION['refreshToken']))
-		{
-			return TRUE;
-		}
-		else
-		{
-			return FALSE;
-		}
 	}
 
 	private function set_sorts($get)
