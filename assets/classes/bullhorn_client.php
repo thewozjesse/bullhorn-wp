@@ -70,16 +70,18 @@ class BullhornClient {
 		//check connection and refresh if made, get authorization if not
 		if ($this->_hasConnection())
 		{
+			echo 'has connection <br>';
 			$refresh = $this->getRefreshTokens();
 		}
 		else
 		{
+			echo 'does not have connection <br>';
 			$this->_getAuthCode();
 			$this->_getOauthTokens();
 		}
 
-		$this->doLogin();
-		// $this->storeTokensToSession();
+		$this->_doLogin();
+		$this->_storeTokens();
 	}
 	
 	private function _hasConnection()
@@ -132,31 +134,16 @@ class BullhornClient {
 
 	private function getRefreshTokens()
 	{
-		$auth_url = $this->bullhorn_auth_url.'/oauth/token?grant_type=refresh_token&refresh_token='.$_SESSION['refreshToken'].'&client_id='.$this->client_id.'&client_secret='.$this->client_secret;
-
-		$options = array(
-			CURLOPT_POST           => true,
-			CURLOPT_POSTFIELDS     => $data,
-			CURLOPT_RETURNTRANSFER => true,
-			CURLOPT_FOLLOWLOCATION => true,
-			CURLOPT_AUTOREFERER    => true,
-			CURLOPT_CONNECTTIMEOUT => 120,
-			CURLOPT_TIMEOUT        => 120,
-		);
-
-		$ch  = curl_init( $auth_url );
-		curl_setopt_array( $ch, $options );
-		$content = curl_exec( $ch );
-
-		curl_close( $ch );
+		$auth_url = $this->bullhorn_auth_url.'/oauth/token?grant_type=refresh_token&refresh_token='.$this->oauth_refresh.'&client_id='.$this->client_id.'&client_secret='.$this->client_secret;
+		$data = '';
 		
-		$json = json_decode($content);
+		$json = json_decode($this->bullhorn_request->post($auth_url, $data));
 
 		$this->oauth_token = $json->access_token;
 		$this->oauth_refresh = $json->refresh_token;
 	}
 
-	private function doLogin()
+	private function _doLogin()
 	{
 		try {
 			if (!isset($this->oauth_token)) {
@@ -174,11 +161,11 @@ class BullhornClient {
 		}
 	}
 
-	private function storeTokensToSession()
+	private function _storeTokens()
 	{
-		$_SESSION['BhRestToken'] = $this->BhRestToken;
-		$_SESSION['restUrl'] = $this->restUrl;
-		$_SESSION['refreshToken'] = $this->oauth_refresh;
+		update_option('sbwp_bullhorn_refresh_token', $this->oauth_refresh);
+		update_option('sbwp_bullhorn_rest_url', $this->restUrl);
+		update_option('sbwp_bullhorn_rest_token', $this->BhRestToken);
 	}
 
 	private function set_sorts($get)
