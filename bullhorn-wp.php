@@ -13,7 +13,9 @@
 */ 
 define('SBWP_PLUGIN_NAME', 'Simple Bullhorn WP');
  
- 
+require_once('assets/classes/bullhorn_request.php');
+require_once('assets/classes/bullhorn_client.php');
+
 /*
 *  Method to register the menu page
 */
@@ -41,10 +43,16 @@ if ( is_admin() )
 
 function sbwp_register_api_credential_settings()
 {
+    // register API credentials
     register_setting( 'sbwp-api-credentials', 'sbwp_bullhorn_client_id' );
     register_setting( 'sbwp-api-credentials', 'sbwp_bullhorn_client_secret' );
     register_setting( 'sbwp-api-credentials', 'sbwp_bullhorn_username' );
     register_setting( 'sbwp-api-credentials', 'sbwp_bullhorn_password' );
+    
+    // register OAuth credentials
+    register_setting( 'sbwp-oauth-credentials', 'sbwp_bullhorn_refresh_token' );
+    register_setting( 'sbwp-oauth-credentials', 'sbwp_bullhorn_rest_token' );
+    register_setting( 'sbwp-oauth-credentials', 'sbwp_bullhorn_rest_url' );
 }
  
 /*
@@ -58,5 +66,26 @@ function show_sbwp_options_admin_menu()
     
     require_once('assets/admin/templates/api_credentials.php');
 }
- 
- ?>
+
+/**
+ * Register shortcode for displaying all jobs
+ */
+function sbwp_display_all_jobs( $atts )
+{
+    $bullhorn = new BullhornClient($_GET);
+    $jobs = $bullhorn->getAllJobs();
+    var_dump($jobs);
+}
+add_shortcode( 'sbwp-bullhorn-jobs', 'sbwp_display_all_jobs' );
+
+/**
+ * Register shortcode for displaying a single job
+ */
+function sbwp_display_single_job( $atts )
+{
+    $bullhorn = new BullhornClient($_GET);
+    $job = $bullhorn->getJob();
+    var_dump($job);
+}
+add_shortcode( 'sbwp-bullhorn-single', 'sbwp_display_single_job' );
+?>
