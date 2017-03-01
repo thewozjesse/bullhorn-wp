@@ -29,9 +29,13 @@ if ( !class_exists( 'BullhornClient' ) ) {
 		private $city_sort;
 		private $state_sort;
 
+		/**
+		 * Initialize the API credentials and the request library. Start a connection
+		 * @param array $get parameters from the url - set sorts, limits, types of jobs
+		 */
 		public function __construct($get = NULL)
 		{
-			$this->set_sorts($get);
+			$this->_setSorts($get);
 			
 			// set credentials
 			try {
@@ -67,14 +71,8 @@ if ( !class_exists( 'BullhornClient' ) ) {
 		private function _connect()
 		{
 			//check connection and refresh if made, get authorization if not
-			if ($this->_hasConnection())
+			if (!$this->_hasConnection() || !$this->_getRefreshTokens())
 			{
-				echo 'has connection <br>';
-				$refresh = $this->getRefreshTokens();
-			}
-			else
-			{
-				echo 'does not have connection <br>';
 				$this->_getAuthCode();
 				$this->_getOauthTokens();
 			}
@@ -131,15 +129,20 @@ if ( !class_exists( 'BullhornClient' ) ) {
 			$this->oauth_refresh = $json->refresh_token;
 		}
 
-		private function getRefreshTokens()
+		private function _getRefreshTokens()
 		{
 			$auth_url = $this->bullhorn_auth_url.'/oauth/token?grant_type=refresh_token&refresh_token='.$this->oauth_refresh.'&client_id='.$this->client_id.'&client_secret='.$this->client_secret;
 			$data = '';
 			
 			$json = json_decode($this->bullhorn_request->post($auth_url, $data));
 
-			$this->oauth_token = $json->access_token;
-			$this->oauth_refresh = $json->refresh_token;
+			if (isset($json->access_token) && strlen($json->access_token) && isset($json->refresh_token) && strlen($json->refresh_token)) {
+				$this->oauth_token = $json->access_token;
+				$this->oauth_refresh = $json->refresh_token;
+				return true;
+			} else {
+				return false;
+			}
 		}
 
 		private function _doLogin()
@@ -167,7 +170,7 @@ if ( !class_exists( 'BullhornClient' ) ) {
 			update_option('sbwp_bullhorn_rest_token', $this->BhRestToken);
 		}
 
-		private function set_sorts($get)
+		private function _setSorts($get)
 		{
 			if (isset($get['limit']))
 			{
@@ -184,7 +187,7 @@ if ( !class_exists( 'BullhornClient' ) ) {
 			$this->state_sort = isset($get['state']) ? filter_input(INPUT_GET, 'state', FILTER_SANITIZE_STRING) : 'all';
 		}
 
-		public function get_sorts()
+		public function getSorts()
 		{
 			$sorts = array(
 				'limit' => $this->limit,
@@ -199,6 +202,8 @@ if ( !class_exists( 'BullhornClient' ) ) {
 	 
 		public function getAllJobs()
 		{
+			$where = '';
+
 			if (strlen($this->job_title_sort) || strlen($this->division_sort) || strlen($this->city_sort) || strlen($this->state_sort))
 			{
 				$job_title = ($this->job_title_sort != 'all') ? ' AND title = \''.$this->job_title_sort.'\'' : '';
@@ -208,28 +213,10 @@ if ( !class_exists( 'BullhornClient' ) ) {
 
 				$where = urlencode($job_title . $division . $city . $state);
 			}
-			else
-			{
-				$where = '';
-			}
 
-			$url = $_SESSION['restUrl'].'query/JobOrder?where=isOpen=TRUE&fields=id,title,address,businessSectors(name)&BhRestToken='.$_SESSION['BhRestToken'];
+			$url = $this->restUrl.'query/JobOrder?where=isOpen=TRUE&fields=id,title,address,businessSectors(name)&BhRestToken='.$this->BhRestToken;
 
-			$options = array(
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_FOLLOWLOCATION => true,
-				CURLOPT_AUTOREFERER    => true,
-				CURLOPT_CONNECTTIMEOUT => 120,
-				CURLOPT_TIMEOUT        => 120,
-			);
-
-			$ch  = curl_init( $url );
-			curl_setopt_array( $ch, $options );
-			$content = curl_exec( $ch );
-
-			curl_close( $ch );
-
-			$data = json_decode($content);
+			$data = json_decode($this->bullhorn_request->get($url));
 
 			return $data;
 		}
@@ -238,23 +225,9 @@ if ( !class_exists( 'BullhornClient' ) ) {
 		{
 			$id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 
-			$url = $_SESSION['restUrl'].'entity/JobOrder/'.$id.'?fields=id,title,address,businessSectors(name),startDate,employmentType,educationDegree,salaryUnit,salary,publicDescription&BhRestToken='.$_SESSION['BhRestToken'];
+			$url = $this->restUrl.'entity/JobOrder/'.$id.'?fields=id,title,address,businessSectors(name),startDate,employmentType,educationDegree,salaryUnit,salary,publicDescription&BhRestToken='.$this->BhRestToken;
 
-			$options = array(
-				CURLOPT_RETURNTRANSFER => true,
-				CURLOPT_FOLLOWLOCATION => true,
-				CURLOPT_AUTOREFERER    => true,
-				CURLOPT_CONNECTTIMEOUT => 120,
-				CURLOPT_TIMEOUT        => 120,
-			);
-
-			$ch  = curl_init( $url );
-			curl_setopt_array( $ch, $options );
-			$content = curl_exec( $ch );
-
-			curl_close( $ch );
-
-			$data = json_decode($content);
+			$data = json_decode($this->bullhorn_request->get($url));
 
 			return $data;
 		}

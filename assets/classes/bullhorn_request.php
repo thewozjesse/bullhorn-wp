@@ -43,7 +43,7 @@ if ( !class_exists( 'BullhornRequest' ) ) {
             return $content;
         }
         
-        public function get($login_url)
+        public function get($url)
         {
             $options = array(
                 CURLOPT_RETURNTRANSFER => true,
@@ -53,7 +53,7 @@ if ( !class_exists( 'BullhornRequest' ) ) {
                 CURLOPT_TIMEOUT        => 120,
             );
 
-            $ch  = curl_init( $login_url );
+            $ch  = curl_init( $url );
             curl_setopt_array( $ch, $options );
             $content = curl_exec( $ch );
 
